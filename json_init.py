@@ -1,10 +1,8 @@
-# Program that finds the word with the highest entropy in the list and writes it in a file
-# Since initially there are 12972 words and 243 possible combinations for every word
-# it takes a lot of time to find the entropy of every word (1.5 seconds per word)
-# 1.5 * 12972 / 3600 = 5.5 hours to complete
-# 12972^2 * 3^5 = 4*10^10 checks done
-
+import json
+import requests
 from math import log2
+from time import sleep
+from alive_progress import alive_bar
 from solver_v1 import is_in, is_placed_correctly
 
 all_permutations = [] # ex. [🟨, 🟩, ⬛, 🟨, 🟩]
@@ -15,7 +13,6 @@ def initial_permutations(n=5, lst=[]): # Appending to list every possible permut
     else:
         initial_permutations(n-1, [0]+lst)
         initial_permutations(n-1, [1]+lst)
-        initial_permutations(n-1, [2]+lst)
 
 def find_general_entropy(word, words_list): # Finds entropy for word given every possible permutation
     global all_permutations
@@ -46,10 +43,26 @@ def find_general_entropy(word, words_list): # Finds entropy for word given every
         if p != 0:
             entropy -= p * log2(p) # entropy = - sum(p(x)*log2(p(x)))
 
-    return entropy
+def get_freq(term): # Use datamuse api to find frequency x (x/1.000.000)
+
+    response = None
+    while True:
+        try: # Get response
+            response = requests.get('https://api.datamuse.com/words?sp='+term+'&md=f&max=1').json()
+        except:
+            print('Could not get response.')
+            sleep(0.5)
+            continue
+        break
+
+    freq = 0.0 if len(response)==0 else float(response[0]['tags'][0][2:]) # Getting frequency from dict
+    
+    return freq
+
+
 
 def main():
-    global all_permutations
+
     words_list = [] # Inserting every word in list
     with open("wordle_word_list.txt", "r") as words_file:
         word = words_file.readline()
@@ -59,12 +72,14 @@ def main():
         words_list.pop(-1)
         words_file.close()
 
-    initial_permutations()
-    # Commented last part to avoid 5.5 hour program that resets 'entropy_list.txt', DO NOT UNCOMMENT
-
-    # with open("entropy_list.txt", "w") as entropy_file:
-    #     for word in words_list: # Finding entropy for every word and writing it into 'entropy_list.txt'
-    #         entropy_file.write(f"{word} {find_general_entropy(word, words_list)}\n")
+    data = {} # Attention!!! Do not uncomment this code, if ran it takes > 7 hours to complete
+    # with alive_bar(len(words_list)) as bar:
+    #     for word in words_list:
+    #         data[word] = {}
+    #         data[word]["probability"] = get_freq(word)
+    #         data[word]["entropy"] = find_general_entropy(word, words_list)
+    #         bar()
+    #     json.dump(data, fp)
 
 
 

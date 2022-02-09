@@ -2,7 +2,7 @@
 # This program chooses a random word from a list of possible solutions, if the word is not correct it takes all the clues given,
 # reduces the list of possible words and retries (randomly)
 #
-# Time to run 10000 tries: about 50 seconds
+# Time to run 10000 tries: about 1 minute and 20 seconds
 # Results: 90% Win-rate after six tries
 # In average it takes 4.85 tries to find the solution
 # Approx. plot
@@ -23,6 +23,7 @@
 
 from random import randint
 from matplotlib.pyplot import show, bar
+from alive_progress import alive_bar
 
 def update_list(word_list, clues): # Remove from list every string that doesn't follow new clues
 
@@ -87,30 +88,34 @@ def main():
     gen = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0}
     times = 10000
     original = words_list
-    for _ in range(times):
+    with alive_bar(times) as load_bar: # Using loading bar
+        for _ in range(times):
+            words_list = original # Resetting list
 
-        words_list = original # Resetting list
+            with open("wordle_possible_answers.txt", "r") as answers_file: # Get a random answer
+                answers_file.seek(randint(0, len_anwers*6))
+                answers_file.readline()
+                solution = answers_file.readline()[:-1]
+                
+            for i in range(6): # Play the game for six rounds, if the program doesn't find the word in these six rounds it loses
+                    
+                word = words_list[randint(0, len(words_list)-1)] # Uses random (possible) word
+                    
+                if word == solution: # If the word is correct, it won
+                    # YOU WON!!!
+                    gen[i+1] += 1
+                    won += 1
+                    break
 
-        with open("wordle_possible_answers.txt", "r") as answers_file: # Get a random answer
-            answers_file.seek(randint(0, len_anwers))
-            answers_file.readline()
-            solution = answers_file.readline()[:-1]
-        
-        for i in range(6): # Play the game for six rounds, if the program doesn't find the word in these six rounds it loses
-            
-            word = words_list[randint(0, len(words_list)-1)] # Uses random (possible) word
-            
-            if word == solution: # If the word is correct, it won
-                gen[i+1] += 1
-                won += 1
-                break
+                clues = find_clues(word, solution) # If it is not, give clues
+                words_list = update_list(words_list, clues) # Updating list of words
 
-            clues = find_clues(word, solution) # If it is not, give clues
-            words_list = update_list(words_list, clues) # Updating list of words
+            if word != solution:
+                # YOU LOST :'''(
+                gen[7] += 1
+                
+            load_bar() # Updating loading bar
 
-        if word != solution:
-            gen[7] += 1
-    
     print(f"Win-rate: {round(100*(won/times), 2)}") # Showing results
     print(f"Results: {gen}")
     mean = 0

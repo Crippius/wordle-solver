@@ -10,7 +10,7 @@
 #
 # Time to run 100 tries: about 2 minutes (It takes more time for a more 'though out' solution)
 # Results: 95% Win-rate after six tries
-# In average it takes 4.4 tries to find the solution
+# In average it takes 4.3 tries to find the solution
 # Approx. plot
 #
 #                  #     
@@ -27,6 +27,7 @@
 #
 # x-axis: number of tries before winning
 
+import json
 from math import log2
 from random import randint
 from matplotlib.pyplot import show, bar
@@ -142,15 +143,17 @@ def main():
         len_anwers = sum(1 for _ in answers_file)
 
 
-    with open("entropy_list.txt", "r") as words: # Finding the eord with the highest entropy (tares)
-        a = words.readline().split()             # (File created in 'entropy_init.py')
-        max = 0
-        word = "a"
-        while a:
-            if float(a[-1]) > max:
-                max = float(a[-1])
-                word = a[0]
-            a = words.readline().split()
+    with open("word_file.json", "r") as fp:
+        words = json.load(fp)
+        max = -1
+        max_p = -1
+        max_p_w = ""
+        max_word = ""
+        for word in words.keys():
+            if words[word]["entropy"] > max:
+                max = words[word]["entropy"]
+                max_word = word
+            print(word,words[word]["probability"])
     
     won = 0
     gen = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0}
@@ -159,6 +162,7 @@ def main():
     with alive_bar(times) as load_bar: # Using loading bar
         for _ in range(times):
             words_list = original
+            word = max_word
 
             with open("wordle_possible_answers.txt", "r") as answers_file: # Get a random answer
                 answers_file.seek(randint(0, len_anwers*6))

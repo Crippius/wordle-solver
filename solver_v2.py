@@ -146,14 +146,11 @@ def main():
     with open("word_file.json", "r") as fp:
         words = json.load(fp)
         max = -1
-        max_p = -1
-        max_p_w = ""
         max_word = ""
         for word in words.keys():
             if words[word]["entropy"] > max:
                 max = words[word]["entropy"]
                 max_word = word
-            print(word,words[word]["probability"])
     
     won = 0
     gen = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0}

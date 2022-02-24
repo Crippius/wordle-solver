@@ -23,7 +23,7 @@
 # x-axis: number of tries before winning
 
 
-
+import os
 import json
 from math import log2
 from random import randint
@@ -153,10 +153,14 @@ def main():
     gen = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0}
     times = 100
     original = words_list
+    mean = 0
     with alive_bar(times) as load_bar: # Using loading bar
         for _ in range(times):
             words_list = original
             word = max_word
+
+            text = ""
+            used_words = [word]
 
             with open("wordle_possible_answers.txt", "r") as answers_file: # Get a random answer
                 answers_file.seek(randint(0, len_anwers*6))
@@ -167,11 +171,24 @@ def main():
                 # YOU WON!!!
                 won += 1
                 gen[1] += 1
+                text += "🟩🟩🟩🟩🟩\n" # Congrats!!!
+                for j in range(5):
+                    text += "...\n" # Filling last rows...
 
             else:
                 clues = find_clues(word, solution) 
                 words_list = update_list(words_list, clues) # Updating list of words
+
                 for i in range(1, 6):
+                    for let, type, pos in clues[-5:]:
+                        if type == 0: # Giving feedback with squares
+                            text += "⬛"
+                        elif type == 1:
+                            text += "🟨"
+                        else:
+                            text += "🟩"
+                    text += "\n"
+
                     max = -1 # Resetting variables
                     all_permutations = []
                     permutations(clues)
@@ -194,12 +211,17 @@ def main():
                                     most_probable = word
                             word = most_probable
 
-
+                    used_words.append(word)
 
                     if word == solution: # If the word is correct, it won
                         # YOU WON!!!
+                        score = i+1
                         won += 1
-                        gen[i+1] += 1
+                        gen[score] += 1
+                        text += "🟩🟩🟩🟩🟩\n" # Nice!!!
+                        for j in range(6-score):
+                            text += "...\n"
+
                         break
             
                     clues += find_clues(word, solution) # If it is not, give new clues
@@ -207,16 +229,25 @@ def main():
 
                 if word != solution:
                     # YOU LOST :'''(
+                    score = 7
                     gen[7] += 1
-            
+                    text = text[:-1] + " ❌❌❌"
+                
+                mean += score
+                os.system('cls')     
+                print("\n".join([ # Print info about current info
+                    f"Score: {score}",
+                    f"Words used: {used_words}",
+                    f"Running average: {round(mean/(_+1), 2)}",
+                    f"Running win-rate: {round(100*won/(_+1), 2)}%"
+                    " ",
+                    text]))            
             load_bar() # Updating loading bar
 
     
     print(f"Win-rate: {won/times}") # Showing results
     print(f"Results: {gen}")
     mean = 0
-    for i, j in gen.items():
-        mean += i*j
     print(f"Average number of tries: {mean/times}")
 
     bar(gen.keys(), gen.values())

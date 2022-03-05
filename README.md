@@ -28,7 +28,6 @@ A 'Remove clue' button can be used to pop the last element from the list of clue
 ## Upcoming possible updates
 ### Near future
 * QoL changes
-* Adding italian compatibility to helper for [Pietroppeter](https://github.com/pietroppeter)'s version of Wordle "[Parle](https://pietroppeter.github.io/wordle-it/)"
 * Create a simple wordle player
 * Make the solvers more interactable
 ### Not too near future

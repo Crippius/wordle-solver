@@ -10,10 +10,10 @@
 #
 #                       
 #                  #    
-#             #    #    
+#                  #    
 #             #    #     
-#             #    #       
-#             #    #       
+#             #    #    #   
+#             #    #    #   
 #             #    #    #      
 #             #    #    #      
 #        #    #    #    #   #   
@@ -127,25 +127,18 @@ def main():
 
     global all_permutations
     
-    words_list = [] # Inserting in list every possible word
-    with open("wordle_word_list.txt", "r") as words_file:
-        word = words_file.readline()
-        while word:
-           words_list.append(word[:-1])
-           word = words_file.readline()
-        words_list.pop(-1)
-        words_file.close()
-
-    with open("wordle_possible_answers.txt", "r") as answers_file: # Getting number of possible answers
+    with open("possible_answers_eng.txt", "r") as answers_file: # Getting number of possible answers
         len_anwers = sum(1 for _ in answers_file)
 
-
+    words_list = [] # Inserting in list every possible word
     with open("word_file.json", "r") as fp:
-        words = json.load(fp)
+        data = json.load(fp) # (Using this dict for later)
+        words = data
         max = -1
         max_word = ""
-        for word in words.keys():
-            if words[word]["entropy"] > max:
+        for word in data.keys():
+            words_list.append(word)
+            if words[word]["entropy"] > max: # And finding the most efficient word in the meantime
                 max = words[word]["entropy"]
                 max_word = word
     
@@ -162,7 +155,7 @@ def main():
             text = ""
             used_words = [word]
 
-            with open("wordle_possible_answers.txt", "r") as answers_file: # Get a random answer
+            with open("possible_answers_eng.txt", "r") as answers_file: # Get a random answer
                 answers_file.seek(randint(0, len_anwers*6))
                 answers_file.readline()
                 solution = answers_file.readline()[:-1]
@@ -203,13 +196,12 @@ def main():
                     else:
                         most_probable = ""
                         max_prob = -1
-                        with open("word_file.json", "r") as fp:
-                            data = json.load(fp)
-                            for word in words_list:
-                                if data[word]["probability"] > max_prob:
-                                    max_prob = data[word]["probability"]
-                                    most_probable = word
-                            word = most_probable
+                    
+                        for word in words_list:
+                            if data[word]["probability"] > max_prob:
+                                max_prob = data[word]["probability"]
+                                most_probable = word
+                        word = most_probable
 
                     used_words.append(word)
 
@@ -247,7 +239,6 @@ def main():
     
     print(f"Win-rate: {won/times}") # Showing results
     print(f"Results: {gen}")
-    mean = 0
     print(f"Average number of tries: {mean/times}")
 
     bar(gen.keys(), gen.values())

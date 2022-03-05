@@ -131,25 +131,17 @@ def main():
 
     global all_permutations
     
-    words_list = [] # Inserting in list every possible word
-    with open("wordle_word_list.txt", "r") as words_file:
-        word = words_file.readline()
-        while word:
-           words_list.append(word[:-1])
-           word = words_file.readline()
-        words_list.pop(-1)
-        words_file.close()
-
-    with open("wordle_possible_answers.txt", "r") as answers_file: # Getting number of possible answers
+    with open("possible_answers_eng.txt", "r") as answers_file: # Getting number of possible answers
         len_anwers = sum(1 for _ in answers_file)
-
-
+    
+    words_list = [] # Inserting in list every possible word
     with open("word_file.json", "r") as fp:
         words = json.load(fp)
         max = -1
         max_word = ""
         for word in words.keys():
-            if words[word]["entropy"] > max:
+            words_list.append(word)
+            if words[word]["entropy"] > max: # And finding the most efficient word in the meantime
                 max = words[word]["entropy"]
                 max_word = word
     
@@ -167,7 +159,7 @@ def main():
             used_words = [word]
 
 
-            with open("wordle_possible_answers.txt", "r") as answers_file: # Get a random answer
+            with open("possible_answers_eng.txt", "r") as answers_file: # Get a random answer
                 answers_file.seek(randint(0, len_anwers*6))
                 answers_file.readline()
                 solution = answers_file.readline()[:-1]

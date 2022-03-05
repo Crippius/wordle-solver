@@ -22,6 +22,7 @@
 # x-axis: number of tries before winning
 
 import os
+import json
 from time import sleep
 from random import randint
 from matplotlib.pyplot import show, bar
@@ -74,16 +75,14 @@ def is_in(word, s):
 
 def main():
 
-    words_list = [] # Insert in list every word in file
-    with open("wordle_word_list.txt", "r") as words_file:
-        word = words_file.readline()
-        while word:
-           words_list.append(word[:-1])
-           word = words_file.readline()
-        words_list.pop(-1)
-        words_file.close()
+    words_list = [] # Inserting in list every possible word
+    with open("word_file.json", "r") as fp:
+        words = json.load(fp)
+        for word in words.keys():
+            words_list.append(word)
+
         
-    with open("wordle_possible_answers.txt", "r") as answers_file: # Getting number of possible answers
+    with open("possible_answers_eng.txt", "r") as answers_file: # Getting number of possible answers
         len_anwers = sum(1 for _ in answers_file)
 
     won = 0
@@ -98,7 +97,7 @@ def main():
             used_words = []
             words_list = original # Resetting list
 
-            with open("wordle_possible_answers.txt", "r") as answers_file: # Get a random answer
+            with open("possible_answers_eng.txt", "r") as answers_file: # Get a random answer
                 answers_file.seek(randint(0, len_anwers*6))
                 answers_file.readline()
                 solution = answers_file.readline()[:-1]

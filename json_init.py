@@ -40,46 +40,73 @@ def find_general_entropy(word, words_list): # Finds entropy for word given every
                 possibilities += 1
 
         p = possibilities/length
+
         if p != 0:
             entropy -= p * log2(p) # entropy = - sum(p(x)*log2(p(x)))
+    
+    return entropy
 
-def get_freq(term): # Use datamuse api to find frequency x (x/1.000.000)
+def get_prob(term, lang): # Use google ngram's site to find frequency of a particular word
 
-    response = None
+    corpus = {"english":0, "italian":33} # For every language there is a different corpus
+
+    param = {"content":term, "corpus":corpus[lang], "smoothing":0} # Parameters for the search
+
+    reset = 1
     while True:
-        try: # Get response
-            response = requests.get('https://api.datamuse.com/words?sp='+term+'&md=f&max=1').json()
-        except:
+        r = requests.get(url="https://books.google.com/ngrams/graph", params=param) # Getting request
+        
+        if r.text == "Please try again later.": # If server is overloaded, ,wait a little
+            reset += 1
             print('Could not get response.')
-            sleep(0.5)
+            sleep(2*reset)
             continue
+        
         break
 
-    freq = 0.0 if len(response)==0 else float(response[0]['tags'][0][2:]) # Getting frequency from dict
+    r = str(r.text) # Find data
+    r = r[r.find("ngrams.data")+15:]
+    r = r[:r.find("}")+1]
+    
+    if r[:2] == "];": # No data found
+        return 0
+
+    freq = float(eval(r)["timeseries"][-1])*100 # Got data, get last datapoint
     
     return freq
 
 
 
 def main():
+    
+    initial_permutations()
 
-    words_list = [] # Inserting every word in list
-    with open("wordle_word_list.txt", "r") as words_file:
-        word = words_file.readline()
-        while word:
-           words_list.append(word[:-1])
-           word = words_file.readline()
-        words_list.pop(-1)
-        words_file.close()
+    sub = {"english":"eng", "italian":"ita"}
+    
+    languages = ["english", "italian"] # ["english", "italian"] 
 
-    data = {} # Attention!!! Do not uncomment this code, if ran it takes > 7 hours to complete
-    # with alive_bar(len(words_list)) as bar:
-    #     for word in words_list:
-    #         data[word] = {}
-    #         data[word]["probability"] = get_freq(word)
-    #         data[word]["entropy"] = find_general_entropy(word, words_list)
-    #         bar()
-    #     json.dump(data, fp)
+    for lang in languages:
+        words_list = [] # Inserting every word in list
+        with open(f"word_list_{sub[lang]}.txt", "r") as words_file:
+            word = words_file.readline()
+            while word:
+                words_list.append(word[:-1])
+                word = words_file.readline()
+            words_file.close()
+
+        data = {} # Attention!!! Do not uncomment this code, if ran it takes > 12 hours per language to complete
+                  # because of heavy calculations (and overworking google's ngram)
+    
+        with alive_bar(len(words_list)) as bar: # Getting the probability and the entropy of every word
+            for word in words_list:
+                data[word] = {}
+                data[word]["probability"] = get_prob(word, lang)
+                data[word]["entropy"] = find_general_entropy(word, words_list)
+                print(word, data[word]["probability"], data[word]["entropy"])
+                bar()
+          
+        with open(f"word_file_{sub[lang]}.json", "w") as fp: # Dumping it into json file
+            json.dump(data, fp)
 
 
 

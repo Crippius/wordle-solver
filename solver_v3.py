@@ -123,15 +123,17 @@ def is_in(word, s):
 
 
 
-def main():
+def solver_v3(solution, lang, other_info=False):
 
     global all_permutations
     
-    with open("possible_answers_eng.txt", "r") as answers_file: # Getting number of possible answers
+    sub = {"english":"eng", "italian":"ita"}
+
+    with open(f"possible_answers_{sub[lang]}.txt", "r") as answers_file: # Getting number of possible answers
         len_anwers = sum(1 for _ in answers_file)
 
     words_list = [] # Inserting in list every possible word
-    with open("word_file.json", "r") as fp:
+    with open(f"word_file_{sub[lang]}.json", "r") as fp:
         data = json.load(fp) # (Using this dict for later)
         words = data
         max = -1
@@ -142,109 +144,117 @@ def main():
                 max = words[word]["entropy"]
                 max_word = word
     
+    word = max_word
+
+    text = ""
+    used_words = [word]
+
+    if word == solution: # If solution == tares
+        # YOU WON!!!
+        text += "🟩🟩🟩🟩🟩\n" # Congrats!!!
+        for j in range(5):
+            text += "...\n" # Filling last rows...
+
+    else:
+        clues = find_clues(word, solution) 
+        words_list = update_list(words_list, clues) # Updating list of words
+
+        for i in range(1, 6):
+            for let, type, pos in clues[-5:]:
+                if type == 0: # Giving feedback with squares
+                    text += "⬛"
+                elif type == 1:
+                    text += "🟨"
+                else:
+                    text += "🟩"
+            text += "\n"
+
+            max = -1 # Resetting variables
+            all_permutations = []
+            permutations(clues)
+
+            if len(words_list) > 100: # Time optimisation: Consider only a local point of list
+                sub = randint(100, len(words_list))
+                for other_word in words_list[sub-100:sub]: # Find word with the highest entropy locally
+                    entropy = find_entropy(all_permutations, other_word, words_list[sub-100:sub])
+                    if max < entropy:
+                        word = other_word
+                        max = entropy
+            else:
+                most_probable = ""
+                max_prob = -1
+                    
+                for other_word in words_list:
+                    if data[other_word]["probability"] > max_prob:
+                        word = other_word
+                        max_prob = data[word]["probability"]
+
+            used_words.append(word)
+
+            if word == solution: # If the word is correct, it won
+                # YOU WON!!!
+                score = i+1
+                text += "🟩🟩🟩🟩🟩\n" # Nice!!!
+                for j in range(6-score):
+                    text += "...\n"
+
+                break
+            
+            clues += find_clues(word, solution) # If it is not, give new clues
+            words_list = update_list(words_list, clues) # Updating list of words
+
+        if word != solution:
+            # YOU LOST :'''(
+            score = 7
+            text = text[:-1] + " ❌❌❌"
+    
+    if other_info:
+        return score, text, used_words
+    return score
+                
+    
+    
+    
+
+if __name__ == "__main__":
+
+    sub = {"english":"eng", "italian":"ita"}
+    lang = "english"
+
+    with open(f"possible_answers_{sub[lang]}.txt", "r") as answers_file: # Getting number of possible answers
+        len_anwers = sum(1 for _ in answers_file)
+
     won = 0
     gen = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0}
     times = 100
-    original = words_list
     mean = 0
     with alive_bar(times) as load_bar: # Using loading bar
         for _ in range(times):
-            words_list = original
-            word = max_word
-
-            text = ""
-            used_words = [word]
-
-            with open("possible_answers_eng.txt", "r") as answers_file: # Get a random answer
-                answers_file.seek(randint(0, len_anwers*6))
-                answers_file.readline()
-                solution = answers_file.readline()[:-1]
-
-            if word == solution: # If solution == tares
-                # YOU WON!!!
-                won += 1
-                gen[1] += 1
-                text += "🟩🟩🟩🟩🟩\n" # Congrats!!!
-                for j in range(5):
-                    text += "...\n" # Filling last rows...
-
-            else:
-                clues = find_clues(word, solution) 
-                words_list = update_list(words_list, clues) # Updating list of words
-
-                for i in range(1, 6):
-                    for let, type, pos in clues[-5:]:
-                        if type == 0: # Giving feedback with squares
-                            text += "⬛"
-                        elif type == 1:
-                            text += "🟨"
-                        else:
-                            text += "🟩"
-                    text += "\n"
-
-                    max = -1 # Resetting variables
-                    all_permutations = []
-                    permutations(clues)
-
-                    if len(words_list) > 100: # Time optimisation: Consider only a local point of list
-                        sub = randint(100, len(words_list))
-                        for other_word in words_list[sub-100:sub]: # Find word with the highest entropy locally
-                            entropy = find_entropy(all_permutations, other_word, words_list[sub-100:sub])
-                            if max < entropy:
-                                word = other_word
-                                max = entropy
-                    else:
-                        most_probable = ""
-                        max_prob = -1
-                    
-                        for word in words_list:
-                            if data[word]["probability"] > max_prob:
-                                max_prob = data[word]["probability"]
-                                most_probable = word
-                        word = most_probable
-
-                    used_words.append(word)
-
-                    if word == solution: # If the word is correct, it won
-                        # YOU WON!!!
-                        score = i+1
-                        won += 1
-                        gen[score] += 1
-                        text += "🟩🟩🟩🟩🟩\n" # Nice!!!
-                        for j in range(6-score):
-                            text += "...\n"
-
-                        break
+            with open(f"possible_answers_{sub[lang]}.txt", "r") as answers_file: # Get a random answer
+                    answers_file.seek(randint(0, len_anwers*6))
+                    answers_file.readline()
+                    solution = answers_file.readline()[:-1]
+            score, text, used_words = solver_v3(solution, lang, True)
             
-                    clues += find_clues(word, solution) # If it is not, give new clues
-                    words_list = update_list(words_list, clues) # Updating list of words
+            if score != 7:
+                won += 1
+            gen[score] += 1
 
-                if word != solution:
-                    # YOU LOST :'''(
-                    score = 7
-                    gen[7] += 1
-                    text = text[:-1] + " ❌❌❌"
-                
-                mean += score
-                os.system('cls')     
-                print("\n".join([ # Print info about current info
-                    f"Score: {score}",
-                    f"Words used: {used_words}",
-                    f"Running average: {round(mean/(_+1), 2)}",
-                    f"Running win-rate: {round(100*won/(_+1), 2)}%"
-                    " ",
-                    text]))            
+            mean += score
+            os.system('cls')     
+            print("\n".join([ # Print info about current round
+                f"Score: {score}",
+                f"Words used: {used_words}",
+                f"Running average: {round(mean/(_+1), 2)}",
+                f"Running win-rate: {round(100*won/(_+1), 2)}%"
+                " ",
+                text]))
+
             load_bar() # Updating loading bar
 
-    
     print(f"Win-rate: {won/times}") # Showing results
     print(f"Results: {gen}")
     print(f"Average number of tries: {mean/times}")
 
     bar(gen.keys(), gen.values())
     show() # Plotting results
-    
-    
-
-if __name__ == "__main__":
-    main()

@@ -6,14 +6,14 @@ from solver_v3 import all_permutations, permutations, find_entropy
 
 def helper():
 
+    clues = []
+
+    languages = ["English", "Italian"] 
+
     root = Tk() # Creating main window
     root.iconbitmap("materials/duh.ico")
     root.title("Wordle Helper")
     root.resizable(False, False)
-
-    clues = []
-
-    languages = ["English", "Italian"] 
 
     image = ImageTk.PhotoImage(Image.open("materials/helper.png"))
     title = Label(root, image=image) # Adding title
@@ -31,15 +31,11 @@ def helper():
     letter = StringVar() # Letter insertion widgets
     letter.set(" ")
     letter_widget = Entry(root, textvariable = letter, validate='all', validatecommand=(validation, '%S'), width=3) 
-    letter_widget.grid(row=3, column=0)
+    letter_widget.grid(row=2, column=0)
+    letter_widget.focus_set()
     letter_label = Label(root, text="LETTER:")
-    letter_label.grid(row=2, column=0) 
+    letter_label.grid(row=1, column=0) 
     letter.trace("w", lambda *args: character_limit(letter))
-
-    language = StringVar()
-    language.set("English")
-    language_list = OptionMenu(root, language, *languages)
-    language_list.grid(row=1, column=0)
 
     type = IntVar() # Type insertion widgets
     type.set(0)
@@ -53,9 +49,6 @@ def helper():
     root.bind("<exclam>", lambda event: type.set(0))  # Keyboard binds for easier insertions
     root.bind("<quotedbl>", lambda event: type.set(1))
     root.bind("<sterling>", lambda event: type.set(2))
-
-    root.bind("<Up>", lambda event: type.set((type.get()-1)%3))
-    root.bind("<Down>", lambda event: type.set((type.get()+1)%3))
 
     pos = IntVar() # Position insertion widgets
     pos.set(0)
@@ -75,6 +68,16 @@ def helper():
     root.bind('3', lambda event: pos.set(2))
     root.bind('4', lambda event: pos.set(3))
     root.bind('5', lambda event: pos.set(4))
+
+    language = StringVar() # Choose language
+    language.set("English")
+    language_label = Label(root, text="LANGUAGE:")
+    language_label.grid(row=5, column=0) 
+    language_list = OptionMenu(root, language, *languages)
+    language_list.grid(row=5, column=1)
+
+    root.bind("<Up>", lambda event: language.set(languages[(languages.index(language.get())-1)%len(languages)]))
+    root.bind("<Down>", lambda event: language.set(languages[(languages.index(language.get())+1)%len(languages)]))
 
     label_list = [] # Insertion function
     len_labels = 0
@@ -113,7 +116,7 @@ def helper():
         len_labels += 1
 
     insert = Button(root, text="Insert letter", command=insert_clue)
-    insert.grid(row=5, column=0)
+    insert.grid(row=4, column=0)
 
     root.bind("<space>", lambda event: insert_clue())
 
@@ -128,7 +131,7 @@ def helper():
             len_labels -= 1
 
     delete = Button(root, text="Remove clue", command=delete_clue)
-    delete.grid(row=5, column=1)
+    delete.grid(row=4, column=1)
 
     root.bind("<minus>", lambda event: delete_clue())
 
@@ -140,9 +143,9 @@ def helper():
         sub = {"english":"eng", "italian":"ita"}
 
         words_list = [] # Resetting list
-        with open(f"word_file_{sub[language.set().lower()]}.json", "r") as words:
-            words = json.load(fp)
-            for word in words.keys():
+        with open(f"word_file_{sub[language.get().lower()]}.json", "r") as fp:
+            data = json.load(fp)
+            for word in data.keys():
                 words_list.append(word)
 
         original = words_list
@@ -150,8 +153,6 @@ def helper():
 
         prob_list = []
         entropy_list = []
-        with open("word_file_ita.json", "r") as fp:
-            data = json.load(fp)
 
         if len(words_list) >= 100: # Getting probability and entropy from every word
             for word in words_list:
@@ -222,12 +223,78 @@ def helper():
         entropy_drop.grid(row=4, column=1)
 
     submit_btn = Button(root, text="Submit", command=submit)
-    submit_btn.grid(row=5, column=2, padx=(0, 15))
+    submit_btn.grid(row=4, column=2)
+
+    def help():
+        help_me = Toplevel()
+        help_me.iconbitmap("materials/duh.ico")
+        help_me.title("Help Window")
+
+        title = Label(help_me, text="Thanks for using my program!", font = (22))
+        title.grid(row=0, column=0, columnspan=2)
+
+        general = Label(help_me, text=
+        """To use this helper correctly, you need to enter every letter, with its type of clue and position, 
+        into the list of clues by selecting the appropiate options and clicking the 'Insert letter' button. 
+        After inserting every clue, click the 'Submit' button, it will let you see two lists, 
+        one sorted by most probable, the other sorted by entropy 
+        (the words that on average remove the most options from the remaing list of words). 
+        If a clue has been wrongly entered, click the 'Remove clue' button to pop the last element of the list. 
+        Remember to choose the correct language!""")
+        general.grid(row=1, column=0, columnspan=2)
+
+
+        def help_keys():
+            keys = Toplevel()
+            keys.iconbitmap("materials/duh.ico")
+            keys.title("Key bindings")
+
+            keys_title = Label(keys, text="Key Bindings", font=(22))
+            keys_title.pack()
+
+            keys_label = Label(keys, text="""
+            <1> to <5>: select x position
+            <shift + 1>: select gray type
+            <shift + 2>: select yellow type
+            <shift + 3>: select green type
+            <space>: insert clue
+            <back>: remove clue
+            <enter>: submit clues
+            <up>/<down>: choose different language""")
+            keys_label.pack()
+
+        key_binds = Button(help_me, text="Key bindings", command=help_keys)
+        key_binds.grid(row=2, column=0, pady=15)
+
+        def help_credits():
+            cred = Toplevel()
+            cred.iconbitmap("materials/duh.ico")
+            cred.title("Credits")
+
+            keys_title = Label(cred, text="Credits", font=(22))
+            keys_title.pack()
+
+            keys_label = Label(cred, text="""
+            This program was developed by Tommaso Crippa in the first months of 2022
+            Github profile: https://github.com/Crippius
+            Linkedin profile: https://www.linkedin.com/in/tommaso-crippa/
+            Email: crippa.tommaso@gmail.com
+                """)
+            keys_label.pack()
+
+        credits = Button(help_me, text="Credits", command=help_credits)
+        credits.grid(row=2, column=1, pady=15)
+
+
+
+    question = Button(root, text="Help", command=help)
+    question.grid(row=5, column=2)
 
     root.bind("<Return>", lambda event: submit())
 
-    root.mainloop()
 
+
+    root.mainloop()
 
 
 if __name__ == "__main__":

@@ -23,7 +23,7 @@ A 'Remove clue' button can be used to pop the last element from the list of clue
 * space: insert clue
 * back: remove clue
 * enter: submit clues
-* up/down: move up and down in the type selection
+* up/down: choose different language
   
 ## Upcoming possible updates
 ### Near future

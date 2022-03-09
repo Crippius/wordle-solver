@@ -82,11 +82,11 @@ def helper():
     label_list = [] # Insertion function
     len_labels = 0
     def insert_clue():
-        global pos
-        global type
-        global letter
-        global len_labels
-        global label_list
+        nonlocal pos
+        nonlocal type
+        nonlocal letter
+        nonlocal len_labels
+        nonlocal label_list
 
         clues.append((letter.get(), type.get(), pos.get()))
         placeholder = "" # Adding info to list of clues
@@ -121,9 +121,9 @@ def helper():
     root.bind("<space>", lambda event: insert_clue())
 
     def delete_clue(): # Deletion function, remove last clue
-        global clues
-        global label_list
-        global len_labels
+        nonlocal clues
+        nonlocal label_list
+        nonlocal len_labels
 
         if len_labels != 0:
             label_list[len_labels-1].grid_forget()
@@ -136,9 +136,8 @@ def helper():
     root.bind("<minus>", lambda event: delete_clue())
 
     def submit(): # Submit function
-        global clues
-        global words_list
-        global language
+        nonlocal clues
+        nonlocal language
 
         sub = {"english":"eng", "italian":"ita"}
 

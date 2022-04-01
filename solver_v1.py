@@ -33,20 +33,29 @@ def update_list(word_list, clues): # Remove from list every string that doesn't 
     new_list = []
     for word in word_list:
         check = 1  # If word doesn't follow every rule, then check = 0
-        for clue in clues: 
-            if clue[1] == 0: # (Check 'find_clues' function to see how clues are structured)
-                if is_in(word, clue[0]): # ⬛
+        word_place_count = {}
+        for let, type, pos in clues: 
+            if let not in word_place_count:
+                word_place_count[let] = 0
+
+            if type == 2: # 🟩
+                if not is_placed_correctly(word, let, pos):
                     check = 0
                     break
-            elif clue[1] == 1: # 🟨
-                if is_placed_correctly(word, clue[0], clue[2]) or not is_in(word, clue[0]):
+                word_place_count[let] += 1
+            
+            elif type == 1: # 🟨
+                if is_placed_correctly(word, let, pos) and word.count(let) > word_place_count[let] or not is_in(word, let):
                     check = 0
                     break
-            else: # 🟩
-                if not is_placed_correctly(word, clue[0], clue[2]):
+                word_place_count[let] += 1
+
+            elif type == 0: # ⬛
+                if is_in(word, let) and word.count(let) > word_place_count[let]:
                     check = 0
                     break
-        
+                
+
         if check: # If check = 1, word could be an answer, and is insterted in list
             new_list.append(word)
     
@@ -55,18 +64,38 @@ def update_list(word_list, clues): # Remove from list every string that doesn't 
 
 def find_clues(word, solution): # Give the user clues given the word
     clues = []
+    word_place_count = {}
+
     for i in range(len(word)):
+        if word[i] not in word_place_count: # Used later to check if letter is type 🟨 or ⬛
+                word_place_count[word[i]] = 0
+
         if is_placed_correctly(solution, word[i], i): # 🟩
-            clues.append((word[i], 2, i)) 
-        elif is_in(solution, word[i]): # 🟨
+            clues.append((word[i], 2, i))
+            word_place_count[word[i]] += 1
+
+    for i in range(len(word)):
+        if is_placed_correctly(solution, word[i], i): # Skip, just considered it
+            continue
+
+        elif is_in(solution, word[i]) and solution.count(word[i]) > word_place_count[word[i]]: # 🟨
             clues.append((word[i], 1, i))
+            word_place_count[word[i]] += 1
+
+    for i in range(len(word)):
+        if is_placed_correctly(solution, word[i], i): # Skip, just considered it
+            continue
+
+        elif is_in(solution, word[i]): # 🟨
+            continue
+
         else:
-            clues.append((word[i], 0, -1)) # ⬛
+            clues.append((word[i], 0, i)) # ⬛
     
     return clues # Structure of clue (letter, type of clue (🟩, 🟨, ⬛), position)
 
-def is_placed_correctly(word, s, pos): 
-    return word[pos] == s
+def is_placed_correctly(word, letter, pos): 
+    return word[pos] == letter
 
 def is_in(word, s):
     return s in word
@@ -85,9 +114,9 @@ def solver_v1(solution, lang="english", other_info=False):
             words_list.append(word)
     
     text = "" 
-                
+
     for i in range(6): # Play the game for six rounds, if the program doesn't find the word in these six rounds it loses
-                    
+        
         word = words_list[randint(0, len(words_list)-1)] # Uses random (possible) word
         used_words.append(word)
 
@@ -99,8 +128,9 @@ def solver_v1(solution, lang="english", other_info=False):
                 text += "...\n"
             break
 
-        clues = find_clues(word, solution) # If it is not, give clues
-        for let, type, pos in clues: # Visualizing feedback
+        clues = sorted(find_clues(word, solution), key=lambda i:i[1], reverse=True) # If it is not, give clues
+
+        for let, type, pos in sorted(clues, key=lambda i:i[2]): # Visualizing feedback
             if type == 0:
                 text += "⬛"
             elif type == 1:
@@ -108,6 +138,7 @@ def solver_v1(solution, lang="english", other_info=False):
             else:
                 text += "🟩"
         text += "\n"
+
         words_list = update_list(words_list, clues) # Updating list of words
 
     if word != solution:

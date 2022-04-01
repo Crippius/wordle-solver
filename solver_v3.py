@@ -29,101 +29,11 @@ from math import log2
 from random import randint
 from matplotlib.pyplot import show, bar
 from alive_progress import alive_bar
-
-def update_list(word_list, clues): # Remove from list every string that doesn't follow new clues
-    new_list = []
-    for word in word_list:
-        check = 1  # If word doesn't follow every rule, then check = 0
-        for clue in clues: 
-            if clue[1] == 0: # (Check 'find_clues' function to see how clues are structured)
-                if is_in(word, clue[0]): # ⬛
-                    check = 0
-                    break
-            elif clue[1] == 1: # 🟨
-                if is_placed_correctly(word, clue[0], clue[2]) or not is_in(word, clue[0]):
-                    check = 0
-                    break
-            else: # 🟩
-                if not is_placed_correctly(word, clue[0], clue[2]):
-                    check = 0
-                    break
-        
-        if check: # If check = 1, word could be an answer, and is insterted in list
-            new_list.append(word)
-
-    return new_list
-
-def find_entropy(permutations, word, words_list): # Finds entropy of a given word
-    length = len(words_list)
-    entropy = 0
-
-    for perm in permutations: # Iterating every permutation possible
-        possibilities = 0
-        for other_word in words_list: # Checking the number of words that would have been found given the permutation
-            check = 1
-            for info in range(0, len(perm)):
-                if perm[info] == 0:
-                    if is_in(other_word, word[info]):
-                        check = 0
-                        break
-                elif perm[info] == 1:
-                    if not (is_in(other_word, word[info]) and not is_placed_correctly(other_word, word[info], info)):
-                        check = 0
-                        break
-                else:
-                    if not is_placed_correctly(other_word, word[info], info):
-                        check = 0
-                        break
-            if check:
-                possibilities += 1
-
-        p = possibilities/length
-        if p != 0:
-            entropy -= p * log2(p) # entropy = - sum(p(x)*log2(p(x)))
-
-    return entropy
-
-all_permutations = [] # ex. [🟨, 🟩, ⬛, 🟨, 🟩]
-
-def permutations(clues, n=5, lst=[]): # Recursive function to find all permutations
-    global all_permutations
-    
-    if n==0: # Base case: no remaining steps, add it to list
-        all_permutations.append(lst)
-    
-    else: # Default case: has more steps to do, try all possibilities
-        
-        check = 1 # Checking if a 🟩 is in this position
-        for clue in clues:
-            if clue[1] == 2 and clue[2] == 5-n:
-                check = 0
-        
-        if check: # If we know that in a given position there's a certain letter, only 🟩 can be placed
-            permutations(clues, n-1, lst+[0])
-            permutations(clues, n-1, lst+[1])
-        permutations(clues, n-1, lst+[2]) 
-
-def find_clues(word, solution): # Give the user clues given the word
-    clues = []
-    for i in range(len(word)):
-        if is_placed_correctly(solution, word[i], i): # 🟩
-            clues.append((word[i], 2, i)) 
-        elif is_in(solution, word[i]): # 🟨
-            clues.append((word[i], 1, i))
-        else:
-            clues.append((word[i], 0, -1)) # ⬛
-    
-    return clues # Structure of clue (letter, type of clue (🟩, 🟨, ⬛), position)
-
-def is_placed_correctly(word, s, pos):
-    return word[pos] == s
-
-def is_in(word, s):
-    return s in word
+from solver_v1 import find_clues, update_list, is_placed_correctly, is_in
+from solver_v2 import all_permutations, find_entropy, permutations
 
 
-
-def solver_v3(solution, lang, other_info=False):
+def solver_v3(solution, lang="english", other_info=False):
 
     global all_permutations
     
@@ -156,11 +66,11 @@ def solver_v3(solution, lang, other_info=False):
             text += "...\n" # Filling last rows...
 
     else:
-        clues = find_clues(word, solution) 
+        clues = sorted(find_clues(word, solution), key=lambda i:i[1], reverse=True)
         words_list = update_list(words_list, clues) # Updating list of words
 
         for i in range(1, 6):
-            for let, type, pos in clues[-5:]:
+            for let, type, pos in sorted(clues, key=lambda i:i[2]):
                 if type == 0: # Giving feedback with squares
                     text += "⬛"
                 elif type == 1:
@@ -173,21 +83,18 @@ def solver_v3(solution, lang, other_info=False):
             all_permutations = []
             permutations(clues)
 
-            if len(words_list) > 100: # Time optimisation: Consider only a local point of list
-                sub = randint(100, len(words_list))
-                for other_word in words_list[sub-100:sub]: # Find word with the highest entropy locally
-                    entropy = find_entropy(all_permutations, other_word, words_list[sub-100:sub])
+            if len(words_list) > 300: # Time optimisation: Consider only a local point of list
+                sub = randint(300, len(words_list))
+                for other_word in words_list[sub-300:sub]: # Find word with the highest entropy locally
+                    entropy = find_entropy(all_permutations, other_word, words_list[sub-300:sub])
                     if max < entropy:
                         word = other_word
                         max = entropy
             else:
-                most_probable = ""
-                max_prob = -1
-                    
                 for other_word in words_list:
-                    if data[other_word]["probability"] > max_prob:
+                    if data[other_word]["probability"] > max:
                         word = other_word
-                        max_prob = data[word]["probability"]
+                        max = data[word]["probability"]
 
             used_words.append(word)
 
@@ -200,7 +107,7 @@ def solver_v3(solution, lang, other_info=False):
 
                 break
             
-            clues += find_clues(word, solution) # If it is not, give new clues
+            clues = sorted(find_clues(word, solution), key=lambda i:i[1], reverse=True) # If it is not, give new clues
             words_list = update_list(words_list, clues) # Updating list of words
 
         if word != solution:

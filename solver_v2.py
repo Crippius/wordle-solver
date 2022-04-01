@@ -33,29 +33,7 @@ from math import log2
 from random import randint
 from matplotlib.pyplot import show, bar
 from alive_progress import alive_bar
-
-def update_list(word_list, clues): # Remove from list every string that doesn't follow new clues
-    new_list = []
-    for word in word_list:
-        check = 1  # If word doesn't follow every rule, then check = 0
-        for clue in clues: 
-            if clue[1] == 0: # (Check 'find_clues' function to see how clues are structured)
-                if is_in(word, clue[0]): # ⬛
-                    check = 0
-                    break
-            elif clue[1] == 1: # 🟨
-                if is_placed_correctly(word, clue[0], clue[2]) or not is_in(word, clue[0]):
-                    check = 0
-                    break
-            else: # 🟩
-                if not is_placed_correctly(word, clue[0], clue[2]):
-                    check = 0
-                    break
-        
-        if check: # If check = 1, word could be an answer, and is insterted in list
-            new_list.append(word)
-
-    return new_list
+from solver_v1 import find_clues, update_list, is_placed_correctly, is_in
 
 def find_entropy(permutations, word, words_list): # Finds entropy of a given word
     length = len(words_list)
@@ -107,26 +85,6 @@ def permutations(clues, n=5, lst=[]): # Recursive function to find all permutati
             permutations(clues, n-1, lst+[1])
         permutations(clues, n-1, lst+[2]) 
 
-def find_clues(word, solution): # Give the user clues given the word
-    clues = []
-    for i in range(len(word)):
-        if is_placed_correctly(solution, word[i], i): # 🟩
-            clues.append((word[i], 2, i)) 
-        elif is_in(solution, word[i]): # 🟨
-            clues.append((word[i], 1, i))
-        else:
-            clues.append((word[i], 0, -1)) # ⬛
-    
-    return clues # Structure of clue (letter, type of clue (🟩, 🟨, ⬛), position)
-
-def is_placed_correctly(word, s, pos):
-    return word[pos] == s
-
-def is_in(word, s):
-    return s in word
-
-
-
 def solver_v2(solution, lang="english", other_info=False):
 
     global all_permutations
@@ -155,11 +113,11 @@ def solver_v2(solution, lang="english", other_info=False):
             text += "...\n" # Filling last rows...
     
     else:
-        clues = find_clues(word, solution) 
+        clues = sorted(find_clues(word, solution), key=lambda i:i[1], reverse=True)
         words_list = update_list(words_list, clues) # Updating list of words
 
         for i in range(1, 6):
-            for let, type, pos in clues[-5:]:
+            for let, type, pos in sorted(clues, key=lambda i:i[2]):
                 if type == 0: # Providing feedback
                     text += "⬛"
                 elif type == 1:
@@ -195,7 +153,7 @@ def solver_v2(solution, lang="english", other_info=False):
                     text += "...\n"
                 break
             
-            clues += find_clues(word, solution) # If it is not, give new clues
+            clues = sorted(find_clues(word, solution), key=lambda i:i[1], reverse=True) # If it is not, give new clues
             words_list = update_list(words_list, clues) # Updating list of words
 
         if word != solution:

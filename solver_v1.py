@@ -30,31 +30,40 @@ from alive_progress import alive_bar
 
 def update_list(word_list, clues): # Remove from list every string that doesn't follow new clues
 
+
+    clues = sorted(clues, key=lambda i:i[2])
     new_list = []
     for word in word_list:
         check = 1  # If word doesn't follow every rule, then check = 0
         word_place_count = {}
-        for let, type, pos in clues: 
-            if let not in word_place_count:
-                word_place_count[let] = 0
+        for iter in range(2):
+            for let, type, pos in clues: 
+                if iter == 0:
+                    if let not in word_place_count:
+                        word_place_count[let] = 0
 
-            if type == 2: # 🟩
-                if not is_placed_correctly(word, let, pos):
-                    check = 0
-                    break
-                word_place_count[let] += 1
-            
-            elif type == 1: # 🟨
-                if is_placed_correctly(word, let, pos) and word.count(let) > word_place_count[let] or not is_in(word, let):
-                    check = 0
-                    break
-                word_place_count[let] += 1
-
-            elif type == 0: # ⬛
-                if is_in(word, let) and word.count(let) > word_place_count[let]:
-                    check = 0
-                    break
+                    if type == 2: # 🟩
+                        if not is_placed_correctly(word, let, pos):
+                            check = 0
+                            break
+                        word_place_count[let] += 1
                 
+                else:
+                    if type == 2:
+                        continue
+
+                    elif type == 1: # 🟨
+                        if is_placed_correctly(word, let, pos) and word.count(let) > word_place_count[let] or not is_in(word, let):
+                            check = 0
+                            break
+                        word_place_count[let] += 1
+
+                    elif type == 0: # ⬛
+                        if is_in(word, let) and word.count(let) > word_place_count[let]:
+                            check = 0
+                            break
+            if check == 0:
+                break
 
         if check: # If check = 1, word could be an answer, and is insterted in list
             new_list.append(word)
@@ -66,31 +75,26 @@ def find_clues(word, solution): # Give the user clues given the word
     clues = []
     word_place_count = {}
 
-    for i in range(len(word)):
-        if word[i] not in word_place_count: # Used later to check if letter is type 🟨 or ⬛
-                word_place_count[word[i]] = 0
+    for iter in range(2):
+        for i in range(len(word)):
+            if iter == 0:   
+                if word[i] not in word_place_count: # Used later to check if letter is type 🟨 or ⬛
+                    word_place_count[word[i]] = 0
 
-        if is_placed_correctly(solution, word[i], i): # 🟩
-            clues.append((word[i], 2, i))
-            word_place_count[word[i]] += 1
+                if is_placed_correctly(solution, word[i], i): # 🟩
+                    clues.append((word[i], 2, i))
+                    word_place_count[word[i]] += 1
 
-    for i in range(len(word)):
-        if is_placed_correctly(solution, word[i], i): # Skip, just considered it
-            continue
+            else:
+                if is_placed_correctly(solution, word[i], i): # Skip, just considered it
+                    continue
 
-        elif is_in(solution, word[i]) and solution.count(word[i]) > word_place_count[word[i]]: # 🟨
-            clues.append((word[i], 1, i))
-            word_place_count[word[i]] += 1
+                elif is_in(solution, word[i]) and solution.count(word[i]) > word_place_count[word[i]]: # 🟨
+                    clues.append((word[i], 1, i))
+                    word_place_count[word[i]] += 1
 
-    for i in range(len(word)):
-        if is_placed_correctly(solution, word[i], i): # Skip, just considered it
-            continue
-
-        elif is_in(solution, word[i]): # 🟨
-            continue
-
-        else:
-            clues.append((word[i], 0, i)) # ⬛
+                else:
+                    clues.append((word[i], 0, i)) # ⬛
     
     return clues # Structure of clue (letter, type of clue (🟩, 🟨, ⬛), position)
 
@@ -128,7 +132,7 @@ def solver_v1(solution, lang="english", other_info=False):
                 text += "...\n"
             break
 
-        clues = sorted(find_clues(word, solution), key=lambda i:i[1], reverse=True) # If it is not, give clues
+        clues = find_clues(word, solution) # If it is not, give clues
 
         for let, type, pos in sorted(clues, key=lambda i:i[2]): # Visualizing feedback
             if type == 0:
@@ -185,7 +189,7 @@ if __name__ == "__main__":
                 f"Running average: {round(mean/(_+1), 2)}",
                 f"Running win-rate: {round(100*won/(_+1), 2)}%"
                 " ",
-                text]))
+                text+solution]))
 
             load_bar() # Updating loading bar
 

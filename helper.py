@@ -1,21 +1,22 @@
 import json
 from tkinter import *
+from tkinter import messagebox
 from PIL import ImageTk, Image
 from solver_v1 import update_list
 from solver_v3 import all_permutations, permutations, find_entropy
 
 def helper():
 
-    clues = []
+    trames_of_clues = []
 
     languages = ["English", "Italian"] 
 
     root = Tk() # Creating main window
-    root.iconbitmap("materials/duh.ico")
+    root.iconbitmap("C:/Users/cripp/Google Drive/programming/repos/wordle-solver/materials/duh.ico")
     root.title("Wordle Helper")
     root.resizable(False, False)
 
-    image = ImageTk.PhotoImage(Image.open("materials/helper.png"))
+    image = ImageTk.PhotoImage(Image.open("C:/Users/cripp/Google Drive/programming/repos/wordle-solver/materials/helper.png"))
     title = Label(root, image=image) # Adding title
     title.grid(row=0, column=0, columnspan=4, sticky=N+S+W+E)
 
@@ -29,7 +30,6 @@ def helper():
     validation = root.register(isalpha)
 
     letter = StringVar() # Letter insertion widgets
-    letter.set(" ")
     letter_widget = Entry(root, textvariable = letter, validate='all', validatecommand=(validation, '%S'), width=3) 
     letter_widget.grid(row=2, column=0)
     letter_widget.focus_set()
@@ -79,16 +79,26 @@ def helper():
     root.bind("<Up>", lambda event: language.set(languages[(languages.index(language.get())-1)%len(languages)]))
     root.bind("<Down>", lambda event: language.set(languages[(languages.index(language.get())+1)%len(languages)]))
 
+    
     label_list = [] # Insertion function
     len_labels = 0
+
     def insert_clue():
         nonlocal pos
         nonlocal type
+        nonlocal trames_of_clues
         nonlocal letter
         nonlocal len_labels
         nonlocal label_list
 
-        clues.append((letter.get(), type.get(), pos.get()))
+        if len(letter.get()) != 1:
+            messagebox.showerror(title="Error", message="Enter a letter")
+            return
+
+        if len(trames_of_clues) == 0 or len(trames_of_clues[-1]) == 5: # Trames divided in 5 clues, if more, create another trame
+            trames_of_clues.append([(letter.get(), type.get(), pos.get())])
+        else:
+            trames_of_clues[-1].append((letter.get(), type.get(), pos.get()))
         placeholder = "" # Adding info to list of clues
 
         for i in range(5): # Showing feedback to user: position
@@ -121,13 +131,17 @@ def helper():
     root.bind("<space>", lambda event: insert_clue())
 
     def delete_clue(): # Deletion function, remove last clue
-        nonlocal clues
+        nonlocal trames_of_clues
         nonlocal label_list
         nonlocal len_labels
 
         if len_labels != 0:
             label_list[len_labels-1].grid_forget()
-            clues.pop(-1)
+            if len(trames_of_clues[-1]) == 1:
+                trames_of_clues.pop(-1)
+            else:
+                trames_of_clues[-1].pop(-1)
+
             len_labels -= 1
 
     delete = Button(root, text="Remove clue", command=delete_clue)
@@ -136,38 +150,38 @@ def helper():
     root.bind("<minus>", lambda event: delete_clue())
 
     def submit(): # Submit function
-        nonlocal clues
+        nonlocal trames_of_clues
         nonlocal language
 
         sub = {"english":"eng", "italian":"ita"}
 
         words_list = [] # Resetting list
-        with open(f"word_file_{sub[language.get().lower()]}.json", "r") as fp:
+        with open(f"C:/Users/cripp/Google Drive/programming/repos/wordle-solver/word_file_{sub[language.get().lower()]}.json", "r") as fp:
             data = json.load(fp)
             for word in data.keys():
                 words_list.append(word)
 
         original = words_list
-        words_list = update_list(words_list, clues) # Update list
+        for clues in trames_of_clues:
+            words_list = update_list(words_list, clues) # Update list
 
         prob_list = []
         entropy_list = []
 
-        if len(words_list) >= 100: # Getting probability and entropy from every word
-            for word in words_list:
-                prob_list.append(data[word]["probability"])
-                entropy_list.append(data[word]["entropy"])
-        else:
-            permutations(clues)
-            for word in words_list:
-                prob_list.append(data[word]["probability"])
-                entropy_list.append(find_entropy(all_permutations, word, words_list))
+        # Getting probability and entropy from every word
+        for word in words_list: # OMG the entropy is a lie!!!
+            prob_list.append(data[word]["probability"])
+            entropy_list.append(data[word]["entropy"])
         
         prob_list = [elem for _, elem in sorted(zip(prob_list, words_list), reverse=True)]
         entropy_list = [elem for _, elem in sorted(zip(entropy_list, words_list), reverse=True)]
+        
+        if len(prob_list) == 0:
+            messagebox.showerror(title="Error", message="No words found, please check if the\nclues inserted and language used are correct")
+            return
 
         results  = Toplevel()
-        results.iconbitmap("materials/duh.ico")
+        results.iconbitmap("C:/Users/cripp/Google Drive/programming/repos/wordle-solver/materials/duh.ico")
         results.title("Results")
 
         label =  Label(results, text="RESULTS")
@@ -187,7 +201,6 @@ def helper():
         else:
             prob_text = f"Most probable words:\n 1. {prob_list[0]}\n 2. {prob_list[1]}\n 3. {prob_list[2]}"
             entropy_text = f"Most efficient words:\n 1. {entropy_list[0]}\n 2. {entropy_list[1]}\n 3. {entropy_list[2]}"
-
 
         best_prob = Label(results, text=prob_text) # Widget to show results
         best_prob.grid(row=1, column=0)
@@ -216,17 +229,18 @@ def helper():
             prob_word.set(prob_list[0])
             entropy_word.set(entropy_list[0])
 
-        prob_drop = OptionMenu(results, prob_word, *prob_list) # Widget with the remaining words in a list
-        prob_drop.grid(row=4, column=0)
-        entropy_drop = OptionMenu(results, entropy_word, *entropy_list)
-        entropy_drop.grid(row=4, column=1)
+        if len(prob_list) != 0:
+            prob_drop = OptionMenu(results, prob_word, *prob_list) # Widget with the remaining words in a list
+            prob_drop.grid(row=4, column=0)
+            entropy_drop = OptionMenu(results, entropy_word, *entropy_list)
+            entropy_drop.grid(row=4, column=1)
 
     submit_btn = Button(root, text="Submit", command=submit)
     submit_btn.grid(row=4, column=2)
 
     def help():
         help_me = Toplevel()
-        help_me.iconbitmap("materials/duh.ico")
+        help_me.iconbitmap("C:/Users/cripp/Google Drive/programming/repos/wordle-solver/materials/duh.ico")
         help_me.title("Help Window")
 
         title = Label(help_me, text="Thanks for using my program!", font = (22))

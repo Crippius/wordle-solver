@@ -1,6 +1,8 @@
 # Wordle Solver
 This repository contains a fun project in which I brushed up my Python skills while jumping on the "Wordle" bandwagon and learning some new libraries.
 
+![Screenshot](https://imgur.com/8VMEOPX.png)
+
 ## Files
 In this repo you can find the following files:
 
